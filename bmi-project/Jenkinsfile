@@ -1,0 +1,65 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "bmi-calculator"
+        IMAGE_TAG  = "${BUILD_NUMBER}"
+        REGISTRY   = "localhost:5000"   // change to your Docker Hub / registry
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                // Pulls the latest code from your Git repo
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('app') {
+                    sh "docker build -t ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} ."
+                }
+            }
+        }
+
+        stage('Vulnerability Scan (Ansible)') {
+            steps {
+                // Ansible playbook runs Trivy inside/against the image
+                // and fails the build if HIGH/CRITICAL vulnerabilities are found
+                sh """
+                    ansible-playbook -i ansible/inventory.ini ansible/playbook.yml \
+                        --extra-vars "image_name=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                """
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                sh "docker push ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            }
+        }
+
+        stage('Deploy to K3s (Terraform)') {
+            steps {
+                dir('terraform') {
+                    sh """
+                        terraform init
+                        terraform apply -auto-approve \
+                            -var="image_name=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully. App deployed to K3s."
+        }
+        failure {
+            echo "Pipeline failed. Check console output for the failing stage."
+        }
+    }
+}

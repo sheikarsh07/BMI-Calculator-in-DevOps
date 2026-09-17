@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Precision BMI Calculator — Health & Biometrics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --card-bg: rgba(23, 32, 54, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-glow: rgba(56, 189, 248, 0.15);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --input-bg: rgba(15, 23, 42, 0.8);
+            --input-border: rgba(148, 163, 184, 0.2);
+            --c-underweight: #38bdf8;
+            --c-normal: #10b981;
+            --c-overweight: #f59e0b;
+            --c-obese: #f43f5e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 10% 10%, #1e1b4b 0%, #0f172a 45%, #020617 100%);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glow Backgrounds */
+        .ambient-blob-1 {
+            position: absolute;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(0,0,0,0) 70%);
+            top: -100px;
+            right: -100px;
+            filter: blur(50px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .ambient-blob-2 {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(0,0,0,0) 70%);
+            bottom: -80px;
+            left: -80px;
+            filter: blur(50px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 36px 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s ease;
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 9999px;
+            color: #34d399;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #10b981;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e2e8f0;
+            letter-spacing: 0.01em;
+        }
+
+        .unit-toggle {
+            display: flex;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 2px;
+            gap: 2px;
+        }
+
+        .unit-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .unit-btn.active {
+            background: #3b82f6;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 14px;
+            padding: 14px 16px;
+            padding-right: 56px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input[type="number"]:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+            background: rgba(15, 23, 42, 0.95);
+        }
+
+        .input-unit-tag {
+            position: absolute;
+            right: 16px;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            pointer-events: none;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 14px;
+            padding: 15px;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 24px -5px rgba(37, 99, 235, 0.55);
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Results Card */
+        .result-section {
+            margin-top: 28px;
+            padding-top: 24px;
+            border-top: 1px solid var(--card-border);
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 16px;
+        }
+
+        .bmi-number-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bmi-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .bmi-val {
+            font-size: 42px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.03em;
+            color: #ffffff;
+        }
+
+        .category-badge {
+            padding: 8px 16px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            text-transform: uppercase;
+        }
+
+        .badge-sky { background: #0284c7; box-shadow: 0 0 15px rgba(2, 132, 199, 0.4); }
+        .badge-emerald { background: #059669; box-shadow: 0 0 15px rgba(5, 150, 105, 0.45); }
+        .badge-amber { background: #d97706; box-shadow: 0 0 15px rgba(217, 119, 6, 0.4); }
+        .badge-rose { background: #e11d48; box-shadow: 0 0 15px rgba(225, 29, 72, 0.4); }
+
+        /* Gauge / Meter Bar */
+        .gauge-container {
+            margin: 18px 0 20px;
+        }
+
+        .gauge-track {
+            height: 10px;
+            border-radius: 9999px;
+            background: linear-gradient(to right, 
+                #38bdf8 0%, #38bdf8 20%, 
+                #10b981 20%, #10b981 50%, 
+                #f59e0b 50%, #f59e0b 75%, 
+                #f43f5e 75%, #f43f5e 100%);
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .gauge-pointer {
+            position: absolute;
+            top: -6px;
+            width: 22px;
+            height: 22px;
+            background: #ffffff;
+            border: 3px solid #0f172a;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(255,255,255,0.8);
+            transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .gauge-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 10.5px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        /* Key Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .metric-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 12px 14px;
+        }
+
+        .metric-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+
+        .desc-callout {
+            margin-top: 14px;
+            background: rgba(30, 41, 59, 0.5);
+            border-left: 3px solid #38bdf8;
+            padding: 10px 14px;
+            border-radius: 0 10px 10px 0;
+            font-size: 12px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        .desc-callout.emerald { border-left-color: #10b981; }
+        .desc-callout.amber { border-left-color: #f59e0b; }
+        .desc-callout.rose { border-left-color: #f43f5e; }
+
+        .error-alert {
+            background: rgba(225, 29, 72, 0.15);
+            border: 1px solid rgba(225, 29, 72, 0.3);
+            color: #fca5a5;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 11px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-blob-1"></div>
+    <div class="ambient-blob-2"></div>
+
+    <div class="container">
+        <div class="card">
+            <!-- Brand & Title -->
+            <div class="brand-header">
+                <div class="badge-pill">
+                    <span class="badge-dot"></span>
+                    DevOps Health Microservice
+                </div>
+                <h1>Biometric BMI Calculator</h1>
+                <p class="subtitle">Precision body mass index & clinical weight diagnostics</p>
+            </div>
+
+            {% if error %}
+            <div class="error-alert">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <!-- Calculator Form -->
+            <form method="POST" id="bmiForm">
+                <input type="hidden" name="height_unit" id="heightUnitInput" value="{{ data.height_unit if data else 'cm' }}">
+                <input type="hidden" name="weight_unit" id="weightUnitInput" value="{{ data.weight_unit if data else 'kg' }}">
+
+                <!-- Weight Input -->
+                <div class="form-group">
+                    <div class="label-row">
+                        <label for="weight">Weight</label>
+                        <div class="unit-toggle">
+                            <button type="button" class="unit-btn active" id="wKgBtn" onclick="setWeightUnit('kg')">kg</button>
+                            <button type="button" class="unit-btn" id="wLbsBtn" onclick="setWeightUnit('lbs')">lbs</button>
+                        </div>
+                    </div>
+                    <div class="input-wrapper">
+                        <input type="number" 
+                               id="weight" 
+                               name="weight" 
+                               step="0.1" 
+                               min="5" 
+                               max="400" 
+                               value="{{ data.raw_weight if data else '75' }}" 
+                               placeholder="e.g. 75" 
+                               required>
+                        <span class="input-unit-tag" id="weightUnitDisplay">kg</span>
+                    </div>
+                </div>
+
+                <!-- Height Input -->
+                <div class="form-group">
+                    <div class="label-row">
+                        <label for="height">Height</label>
+                        <div class="unit-toggle">
+                            <button type="button" class="unit-btn active" id="hCmBtn" onclick="setHeightUnit('cm')">cm</button>
+                            <button type="button" class="unit-btn" id="hMBtn" onclick="setHeightUnit('m')">meters</button>
+                        </div>
+                    </div>
+                    <div class="input-wrapper">
+                        <input type="number" 
+                               id="height" 
+                               name="height" 
+                               step="0.01" 
+                               min="30" 
+                               max="300" 
+                               value="{{ data.raw_height if data else '175' }}" 
+                               placeholder="e.g. 175" 
+                               required>
+                        <span class="input-unit-tag" id="heightUnitDisplay">cm</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="calculateBtn">
+                    Calculate Biometrics
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                    </svg>
+                </button>
+            </form>
+
+            <!-- Results Section -->
+            {% if data %}
+            <div class="result-section" id="results">
+                <div class="result-header">
+                    <div class="bmi-number-box">
+                        <span class="bmi-label">Your Calculated BMI</span>
+                        <span class="bmi-val">{{ data.bmi }}</span>
+                    </div>
+                    <div class="category-badge badge-{{ data.category_color }}">
+                        {{ data.category }}
+                    </div>
+                </div>
+
+                <!-- Visual Spectrum Gauge -->
+                <div class="gauge-container">
+                    <div class="gauge-track">
+                        <div class="gauge-pointer" style="left: {{ data.gauge_percent }}%;"></div>
+                    </div>
+                    <div class="gauge-labels">
+                        <span>Under (&lt;18.5)</span>
+                        <span>Normal (18.5-24.9)</span>
+                        <span>Over (25-29.9)</span>
+                        <span>Obese (&ge;30)</span>
+                    </div>
+                </div>
+
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-title">Healthy Weight Range</div>
+                        <div class="metric-value">{{ data.min_healthy_kg }} – {{ data.max_healthy_kg }} kg</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-title">BMI Prime (Target = 1.0)</div>
+                        <div class="metric-value">{{ data.bmi_prime }}</div>
+                    </div>
+                </div>
+
+                <div class="desc-callout {{ data.category_color }}">
+                    <strong>Diagnostic:</strong> {{ data.category_desc }}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="footer-note">
+                Deployed via Jenkins &bull; Scanned with Ansible &amp; Trivy &bull; Managed by Terraform on K3s
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setHeightUnit(unit) {
+            const hInput = document.getElementById('height');
+            const hDisplay = document.getElementById('heightUnitDisplay');
+            const hidden = document.getElementById('heightUnitInput');
+            const cmBtn = document.getElementById('hCmBtn');
+            const mBtn = document.getElementById('hMBtn');
+
+            hidden.value = unit;
+            if (unit === 'cm') {
+                cmBtn.classList.add('active');
+                mBtn.classList.remove('active');
+                hDisplay.textContent = 'cm';
+                hInput.placeholder = 'e.g. 175';
+                hInput.min = '30';
+                hInput.max = '300';
+                hInput.step = '0.5';
+                // If value was small like 1.75, convert to 175
+                const val = parseFloat(hInput.value);
+                if (val && val < 3.0) {
+                    hInput.value = (val * 100).toFixed(0);
+                }
+            } else {
+                mBtn.classList.add('active');
+                cmBtn.classList.remove('active');
+                hDisplay.textContent = 'm';
+                hInput.placeholder = 'e.g. 1.75';
+                hInput.min = '0.3';
+                hInput.max = '3.0';
+                hInput.step = '0.01';
+                // If value was large like 175, convert to 1.75
+                const val = parseFloat(hInput.value);
+                if (val && val > 3.0) {
+                    hInput.value = (val / 100).toFixed(2);
+                }
+            }
+        }
+
+        function setWeightUnit(unit) {
+            const wInput = document.getElementById('weight');
+            const wDisplay = document.getElementById('weightUnitDisplay');
+            const hidden = document.getElementById('weightUnitInput');
+            const kgBtn = document.getElementById('wKgBtn');
+            const lbsBtn = document.getElementById('wLbsBtn');
+
+            hidden.value = unit;
+            if (unit === 'kg') {
+                kgBtn.classList.add('active');
+                lbsBtn.classList.remove('active');
+                wDisplay.textContent = 'kg';
+                wInput.placeholder = 'e.g. 75';
+            } else {
+                lbsBtn.classList.add('active');
+                kgBtn.classList.remove('active');
+                wDisplay.textContent = 'lbs';
+                wInput.placeholder = 'e.g. 165';
+            }
+        }
+
+        // Initialize units if pre-rendered
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentHUnit = document.getElementById('heightUnitInput').value;
+            const currentWUnit = document.getElementById('weightUnitInput').value;
+            if (currentHUnit) setHeightUnit(currentHUnit);
+            if (currentWUnit) setWeightUnit(currentWUnit);
+        });
+    </script>
+</body>
+</html>

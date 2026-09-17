@@ -1,0 +1,36 @@
+---
+# This playbook checks the Docker image built by Jenkins for known
+# vulnerabilities using Trivy (open-source container scanner), and
+# fails the pipeline if any CRITICAL vulnerabilities are found.
+
+- name: Scan Docker image for vulnerabilities
+  hosts: local
+  become: false
+  vars:
+    image_name: "{{ image_name }}"   # passed in from Jenkins --extra-vars
+
+  tasks:
+    - name: Ensure Trivy is installed
+      ansible.builtin.shell: |
+        which trivy || (curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin)
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Run Trivy scan on the image
+      ansible.builtin.command: >
+        trivy image --severity CRITICAL,HIGH
+        --exit-code 1
+        --format table
+        {{ image_name }}
+      register: scan_result
+      ignore_errors: true
+
+    - name: Show scan output
+      ansible.builtin.debug:
+        var: scan_result.stdout_lines
+
+    - name: Fail pipeline if critical vulnerabilities found
+      ansible.builtin.fail:
+        msg: "Critical/High vulnerabilities found in {{ image_name }}. Fix before deploying."
+      when: scan_result.rc != 0
